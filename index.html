@@ -267,37 +267,48 @@
         }
 
         async function sendToSheet() {
-            const btn = document.getElementById('sync-btn');
-            if (state.prospects.length === 0) { showMessage("Ledger is empty."); return; }
-            if (WEBHOOK_URL.includes('YOUR_SCRIPT_ID')) { showMessage("ARCHITECT: You must paste your Google Script URL in the code."); return; }
+    const btn = document.getElementById('sync-btn');
+    const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbwpl-CSAIP6rfgcthg-VoRHmBSw-N65CPSH6Fs47SWflBiCutCRC_gzWCtrSoVXBLqddQ/exec'; 
 
-            saveCurrentNotes();
-            saveAndRender();
+    if (WEBHOOK_URL.includes('YOUR_SCRIPT_ID')) { 
+        alert("CRITICAL: You must paste your Web App URL into Line 206."); 
+        return; 
+    }
 
-            btn.innerText = "UPLOADING PAYLOAD...";
-            btn.classList.add('animate-pulse', 'bg-accent-green', 'text-black');
+    btn.innerText = "UPLOADING...";
+    btn.classList.add('animate-pulse');
 
-            // Find actively changed prospects to sync (simplification: sync all for this version)
-            const payload = state.prospects.map(p => ({
-                id: p.id, date: p.dateAdded, name: p.name, phone: p.phone, source: p.source, goal: p.goal, 
-                stage: p.stage, isHVO: p.isHVO, notes: p.notes
-            }));
+    try {
+        const payload = {
+            action: "bulk_sync",
+            data: state.prospects.map(p => ({
+                date: p.dateAdded,
+                id: p.id,
+                name: p.name,
+                phone: p.phone,
+                source: p.source,
+                goal: p.goal,
+                stage: p.stage,
+                isHVO: p.isHVO,
+                notes: p.notes
+            }))
+        };
 
-            try {
-                await fetch(WEBHOOK_URL, {
-                    method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: "bulk_sync", data: payload })
-                });
-                
-                btn.innerText = "SYNC COMPLETE";
-                btn.classList.remove('animate-pulse');
-                setTimeout(() => { btn.innerText = "SYNC TO CLOUD (SHEETS)"; btn.classList.remove('bg-accent-green', 'text-black'); }, 3000);
-            } catch (error) {
-                console.error(error);
-                btn.innerText = "SYNC FAILED. CHECK CONSOLE.";
-                btn.classList.remove('animate-pulse');
-            }
-        }
+        await fetch(WEBHOOK_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        btn.innerText = "SYNC COMPLETE";
+        setTimeout(() => { btn.innerText = "SYNC TO CLOUD (SHEETS)"; btn.classList.remove('animate-pulse'); }, 2000);
+    } catch (error) {
+        console.error(error);
+        btn.innerText = "SYNC FAILED";
+        btn.classList.remove('animate-pulse');
+    }
+}
 
         function saveAndRender() {
             localStorage.setItem('moe_crm_v4', JSON.stringify(state));
